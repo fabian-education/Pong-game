@@ -6,7 +6,7 @@ WIDTH, HEIGHT = 700, 500
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pong")
 
-FPS = 160
+FPS = 240
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -183,19 +183,24 @@ class pong_environment:
         self.ball.move()
         reward=0 #reward for right paddle
         rewardleft=0 #reward for left paddle (AI vs AI)
-        rewright,rewleft=handle_collision(self.ball, self.left_paddle, self.right_paddle)
-        reward=reward+rewright
-        rewardleft=rewardleft+rewleft
+        scored = False
+        
         if self.ball.x < 0:
             self.right_score += 1
-            reward=+1
-            rewardleft-=1
+            reward += 1
+            rewardleft -= 1
+            scored = True
             self.ball.reset()
         elif self.ball.x > WIDTH:
             self.left_score += 1
-            reward=-1
-            rewardleft+=1
+            reward -= 1
+            rewardleft += 1
+            scored = True
             self.ball.reset()
+        else:
+            rewright,rewleft=handle_collision(self.ball, self.left_paddle, self.right_paddle)
+            reward=reward+rewright
+            rewardleft=rewardleft+rewleft
 
         won = False
         if self.left_score >= WINNING_SCORE:
@@ -217,8 +222,7 @@ class pong_environment:
             self.right_paddle.reset()
             self.left_score = 0
             self.right_score = 0
-        
-       
+
         balldata = [
         self.ball.x / WIDTH,
         self.ball.y / HEIGHT,
@@ -227,15 +231,12 @@ class pong_environment:
         ]   
 
         paddledata = [
-        self.left_paddle.x / WIDTH,
+        #self.left_paddle.x / WIDTH,
         self.left_paddle.y / HEIGHT,
-        self.right_paddle.x / WIDTH,
+        #self.right_paddle.x / WIDTH,
         self.right_paddle.y / HEIGHT
         ]
-        if abs(reward)==1:
-            done=True
-        else:
-            done=False
+        done = scored or won
         return balldata+paddledata,reward,rewardleft,done
 
 

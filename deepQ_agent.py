@@ -5,6 +5,17 @@ import random
 import tensorflow as tf
 from tensorflow import keras
 
+gpus = tf.config.list_physical_devices('GPU')
+print("GPUs available:", gpus)
+
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print("GPU enabled with memory growth")
+    except RuntimeError as e:
+        print(e)
+
 class my_agent:
     def __init__(self,inp_shape, output_shape,loadmodel=False,trainme=True,filename="pong.keras"):
 
@@ -44,7 +55,8 @@ class my_agent:
     # --- Build Q-network ---
     def build_model(self,inp_shape, output_shape):
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Dense(128, activation='relu', input_shape=(inp_shape,)))
+        model.add(tf.keras.Input(shape=(inp_shape,)))
+        model.add(tf.keras.layers.Dense(128, activation='relu'))
         model.add(tf.keras.layers.Dense(128, activation='relu'))
         model.add(tf.keras.layers.Dense(128, activation='relu'))
         model.add(tf.keras.layers.Dense(output_shape, activation='linear'))
@@ -62,8 +74,9 @@ class my_agent:
                     for i in range(5)
                 ] #Extrahieren der einzelnen Datenkategorien aus memory und Konvertierung in numpy array
             
-            #use target model to calculate future Qvales/rewards
-            next_Q_values = self.target_model.predict(next_states,verbose=0)
+            # use target model to calculate future Qvalues/rewards
+            # .predict returns a NumPy array, which matches the downstream NumPy ops here
+            next_Q_values = self.target_model.predict(next_states, verbose=0)
             max_next_Q_values = np.max(next_Q_values, axis=1)
             
             #(1-done) yields 0 if done=True. If game is done, there is no useful next_states
@@ -95,7 +108,7 @@ class my_agent:
 
         if np.random.rand() <= self.EPSILON:
             return random.randrange(self.output_shape) # random move
-        q_values = self.model.predict(np.asarray(state)[np.newaxis], verbose=0)[0] #AI model prediction
+        q_values = self.model(np.asarray(state)[np.newaxis], training=False)[0]
         return np.argmax(q_values)
     
     def update_target_model_weights(self):
